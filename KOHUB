@@ -1,0 +1,70 @@
+-- =======================================================
+-- ISI KODE INI DI DALAM FILE GITHUB ANDA (CPLHUBS)
+-- =======================================================
+local OrionLib = loadstring(game:HttpGet(("https://githubusercontent.com")))()
+local Window = OrionLib:MakeWindow({Name = "NK MENU V6 - GAG 2", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
+
+local Tab = Window:MakeTab({
+    Name = "Plant Changer",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- Variabel ukuran bawaan
+local UkuranTanaman = 5.0
+
+Tab:AddSlider({
+    Name = "Atur Ukuran Visual Tanaman",
+    Min = 1,
+    Max = 30,
+    Default = 5,
+    Color = Color3.fromRGB(255,255,255),
+    Increment = 1,
+    ValueName = "Skala",
+    Callback = function(Value)
+        UkuranTanaman = Value
+    end    
+})
+
+Tab:AddButton({
+    Name = "Ubah Ukuran Sekarang (Visual)",
+    Callback = function()
+        local Workspace = game:GetService("Workspace")
+        local Players = game:GetService("Players")
+        local LocalPlayer = Players.LocalPlayer
+
+        local function cariPlotKu()
+            for _, plot in pairs(Workspace:WaitForChild("Plots"):GetChildren()) do
+                if plot:FindFirstChild("Owner") and plot.Owner.Value == LocalPlayer.Name then
+                    return plot
+                end
+            end
+            return nil
+        end
+
+        local myPlot = cariPlotKu()
+        if myPlot and myPlot:FindFirstChild("Plants") then
+            for _, plant in pairs(myPlot.Plants:GetChildren()) do
+                local model = plant:FindFirstChild("Model") or plant
+                if model:IsA("Model") then
+                    model:ScaleTo(UkuranTanaman)
+                end
+            end
+            OrionLib:MakeNotification({
+                Name = "Sukses!",
+                Content = "Ukuran tanaman berhasil diubah ke skala " .. tostring(UkuranTanaman),
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Gagal",
+                Content = "Pastikan Anda sudah mengklaim plot dan menanam tanaman!",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end
+})
+
+OrionLib:Init()
