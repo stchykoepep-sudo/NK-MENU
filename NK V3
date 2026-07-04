@@ -1,0 +1,245 @@
+-- [[ NK-MOD V2 - ICON MINIMIZE EDITION ]] --
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+
+-- Bersihkan UI duplikat sebelumnya
+if CoreGui:FindFirstChild("NK_FruitChangerUI") then
+    CoreGui["NK_FruitChangerUI"]:Destroy()
+end
+
+-- ==================== STATE MANAGEMENT ====================
+local CurrentMultiplier = 1.0
+local OriginalSizes = {}
+
+-- Fungsi Utama: Mengincar Murni Tanaman/Buah yang Tertanam di Garden
+local function ApplyPerfectFruitMod()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and not obj:IsA("Terrain") and not obj.Parent:IsA("Accessory") then
+            local name = obj.Name:lower()
+            local parentName = obj.Parent and obj.Parent.Name:lower() or ""
+            
+            local isPlantedFruit = name:find("stage") or name:find("crop") or name:find("plant") or name:find("carrot") or name:find("pineapple") or parentName:find("plants") or parentName:find("crops")
+            local isInvalidObject = name:find("plot") or name:find("garden") or name:find("ground") or name:find("soil") or name:find("fence") or name:find("base") or obj.Parent:IsA("Tool") or parentName:find("plot")
+            
+            if isPlantedFruit and not isInvalidObject then
+                if not OriginalSizes[obj] then
+                    OriginalSizes[obj] = obj.Size
+                end
+                obj.Size = OriginalSizes[obj] * CurrentMultiplier
+            end
+        end
+    end
+
+    -- VISUAL BERAT KG DINAMIS
+    for _, gui in pairs(game:GetDescendants()) do
+        if gui:IsA("TextLabel") then
+            local text = gui.Text
+            if text:lower():find("kg") or text:lower():find("weight") then
+                local angkaAsli = text:match("[%d%.]+")
+                if angkaAsli then
+                    local num = tonumber(angkaAsli)
+                    if num and num > 0 then
+                        local fakeKgValue = num * CurrentMultiplier
+                        local formattedKg = string.format("%.1fkg", fakeKgValue)
+                        gui.Text = text:gsub(angkaAsli .. "%s*[Kk][Gg]", formattedKg):gsub(angkaAsli, formattedKg)
+                    end
+                end
+            end
+        end
+    end
+end
+
+task.spawn(function()
+    while true do
+        pcall(ApplyPerfectFruitMod)
+        task.wait(0.2)
+    end
+end)
+
+
+-- ==================== UI SYSTEM + ICON MINIMIZE ====================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "NK_FruitChangerUI"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- 1. Ikon Bulat Kecil (Akan muncul saat menu di-minimize)
+local MenuIcon = Instance.new("TextButton")
+MenuIcon.Name = "MenuIcon"
+MenuIcon.Size = UDim2.new(0, 45, 0, 45)
+MenuIcon.Position = UDim2.new(0.85, 0, 0.35, 0)
+MenuIcon.BackgroundColor3 = Color3.fromRGB(140, 75, 255)
+MenuIcon.Text = ""
+MenuIcon.Visible = false -- Tersembunyi di awal
+MenuIcon.Active = true
+MenuIcon.Draggable = true -- Ikon bisa digeser-geser di layar HP
+MenuIcon.Parent = ScreenGui
+
+Instance.new("UICorner", MenuIcon).CornerRadius = UDim.new(1, 0) -- Membuatnya bulat sempurna
+local IconStroke = Instance.new("UIStroke", MenuIcon)
+IconStroke.Color = Color3.fromRGB(255, 255, 255)
+IconStroke.Thickness = 2
+
+local IconDot = Instance.new("Frame", MenuIcon)
+IconDot.Size = UDim2.new(0, 12, 0, 12)
+IconDot.Position = UDim2.new(0.5, -6, 0.5, -6)
+IconDot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", IconDot).CornerRadius = UDim.new(1, 0)
+
+
+-- 2. Frame Utama Menu Mod
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 310, 0, 230)
+MainFrame.Position = UDim2.new(0.65, 0, 0.35, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 14, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true 
+MainFrame.Parent = ScreenGui
+
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Color = Color3.fromRGB(75, 45, 130)
+MainStroke.Thickness = 2
+
+-- Tombol Kecil Merah/Toggle Minimize di Samping Menu
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Text = "<"
+ToggleBtn.Size = UDim2.new(0, 25, 0, 35)
+ToggleBtn.Position = UDim2.new(1, 2, 0.4, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 14
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Parent = MainFrame
+
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 5)
+Instance.new("UIStroke", ToggleBtn).Color = Color3.fromRGB(120, 30, 30)
+
+-- LOGIKA MINIMIZE: Mengubah Menu Menjadi Ikon Bulat
+ToggleBtn.MouseButton1Click:Connect(function()
+    -- Ambil posisi terakhir menu sebelum hilang agar ikon muncul di tempat yang sama
+    MenuIcon.Position = UDim2.new(MainFrame.Position.X.Scale, MainFrame.Position.X.Offset, MainFrame.Position.Y.Scale, MainFrame.Position.Y.Offset)
+    MainFrame.Visible = false
+    MenuIcon.Visible = true
+end)
+
+-- LOGIKA MAXIMIZE: Mengeklik Ikon Bulat untuk Membuka Menu Kembali
+MenuIcon.MouseButton1Click:Connect(function()
+    -- Ambil posisi terakhir ikon agar menu muncul di tempat ikon berada
+    MainFrame.Position = UDim2.new(MenuIcon.Position.X.Scale, MenuIcon.Position.X.Offset, MenuIcon.Position.Y.Scale, MenuIcon.Position.Y.Offset)
+    MenuIcon.Visible = false
+    MainFrame.Visible = true
+end)
+
+
+-- Elemen Dekorasi UI Dalam Menu
+local HeaderIcon = Instance.new("Frame", MainFrame)
+HeaderIcon.Size = UDim2.new(0, 24, 0, 24)
+HeaderIcon.Position = UDim2.new(0, 15, 0, 15)
+HeaderIcon.BackgroundColor3 = Color3.fromRGB(140, 75, 255)
+Instance.new("UICorner", HeaderIcon).CornerRadius = UDim.new(0, 6)
+
+local InsideDot = Instance.new("Frame", HeaderIcon)
+InsideDot.Size = UDim2.new(0, 6, 0, 6)
+InsideDot.Position = UDim2.new(0.5, -3, 0.5, -3)
+InsideDot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", InsideDot).CornerRadius = UDim.new(1, 0)
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Text = "Fruit KG Changer"
+Title.Size = UDim2.new(0, 200, 0, 16)
+Title.Position = UDim2.new(0, 48, 0, 12)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 13
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
+
+local Subtitle = Instance.new("TextLabel", MainFrame)
+Subtitle.Text = "Weight & Size Modifier - v2.1"
+Subtitle.Size = UDim2.new(0, 200, 0, 12)
+Subtitle.Position = UDim2.new(0, 48, 0, 28)
+Subtitle.Font = Enum.Font.Gotham
+Subtitle.TextSize = 9
+Subtitle.TextColor3 = Color3.fromRGB(130, 120, 150)
+Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+Subtitle.BackgroundTransparency = 1
+
+local MultiplierLabel = Instance.new("TextLabel", MainFrame)
+MultiplierLabel.Text = "Multiplier: x1"
+MultiplierLabel.Size = UDim2.new(1, -30, 0, 25)
+MultiplierLabel.Position = UDim2.new(0, 15, 0, 60)
+MultiplierLabel.Font = Enum.Font.GothamBold
+MultiplierLabel.TextSize = 18
+MultiplierLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiplierLabel.TextXAlignment = Enum.TextXAlignment.Right
+MultiplierLabel.BackgroundTransparency = 1
+
+-- Pembuat Tombol Multiplier
+local function CreateVideoBtn(name, text, pos)
+    local Btn = Instance.new("TextButton", MainFrame)
+    Btn.Name = name
+    Btn.Text = text
+    Btn.Size = UDim2.new(0, 135, 0, 42)
+    Btn.Position = pos
+    Btn.BackgroundColor3 = Color3.fromRGB(13, 9, 20)
+    Btn.Font = Enum.Font.GothamBold
+    Btn.TextSize = 13
+    Btn.TextColor3 = Color3.fromRGB(240, 240, 240)
+    
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
+    
+    local LeftIndicator = Instance.new("Frame", Btn)
+    LeftIndicator.Name = "LeftIndicator"
+    LeftIndicator.Size = UDim2.new(0, 3, 1, -12)
+    LeftIndicator.Position = UDim2.new(0, 4, 0, 6)
+    LeftIndicator.BackgroundColor3 = Color3.fromRGB(110, 60, 220)
+    LeftIndicator.BorderSizePixel = 0
+    
+    return Btn
+end
+
+local Btn1 = CreateVideoBtn("Btn1", "+1", UDim2.new(0, 15, 0, 105))
+local Btn10 = CreateVideoBtn("Btn10", "+10", UDim2.new(0, 160, 0, 105))
+local Btn100 = CreateVideoBtn("Btn100", "+100", UDim2.new(0, 15, 0, 160))
+local BtnReset = CreateVideoBtn("BtnReset", "Reset", UDim2.new(0, 160, 0, 160))
+
+BtnReset.TextColor3 = Color3.fromRGB(240, 100, 100)
+if BtnReset:FindFirstChild("LeftIndicator") then
+    BtnReset.LeftIndicator.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+end
+
+local function RefreshUI()
+    MultiplierLabel.Text = "Multiplier: x" .. math.floor(CurrentMultiplier)
+end
+
+Btn1.MouseButton1Click:Connect(function()
+    CurrentMultiplier = CurrentMultiplier + 1
+    RefreshUI()
+end)
+
+Btn10.MouseButton1Click:Connect(function()
+    CurrentMultiplier = CurrentMultiplier + 10
+    RefreshUI()
+end)
+
+Btn100.MouseButton1Click:Connect(function()
+    CurrentMultiplier = CurrentMultiplier + 100
+    RefreshUI()
+end)
+
+BtnReset.MouseButton1Click:Connect(function()
+    CurrentMultiplier = 1.0
+    RefreshUI()
+    for obj, size in pairs(OriginalSizes) do
+        if obj and obj.Parent then
+            obj.Size = size
+        end
+    end
+end)
+
+print("=== NK-MOD V2.1: ICON MINIMIZE ACTIVE ===")
