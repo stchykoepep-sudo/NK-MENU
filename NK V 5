@@ -1,0 +1,206 @@
+-- [[ NK-MOD V4 - BILLBOARD FRUIT SIZE & KG CHANGER ]] --
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+
+-- Bersihkan UI lama agar tidak menumpuk
+if CoreGui:FindFirstChild("NK_FruitChangerUI") then
+    CoreGui["NK_FruitChangerUI"]:Destroy()
+end
+
+-- ==================== STATE MANAGEMENT ====================
+local CurrentMultiplier = 1.0
+local OriginalSizes = {}
+
+-- Fungsi Utama: Mengubah Ukuran Buah & Angka KG Secara Bersamaan
+local function ApplyFruitSizeAndKgMod()
+    -- Scan semua objek di dalam Dunia Game (Workspace)
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("TextLabel") then
+            local text = obj.Text
+            local lowerText = text:lower()
+            
+            -- Filter ketat: Teks wajib mengandung "kg" atau "weight" dan berada di dalam BillboardGui (Teks melayang di atas buah)
+            if (lowerText:find("kg") or lowerText:find("weight")) and obj:FindFirstAncestorOfClass("BillboardGui") then
+                
+                -- PROTEKSI TOOL: Pastikan teks melayang ini bukan bagian dari Karakter kita (Bukan item di tangan/hotbar)
+                if not obj:IsDescendantOf(LocalPlayer.Character) then
+                    
+                    -- 1. MANIPULASI ANGKA KG
+                    local angkaAsli = text:match("[%d%.]+")
+                    if angkaAsli then
+                        local num = tonumber(angkaAsli)
+                        if num and num > 0 then
+                            local fakeKgValue = num * CurrentMultiplier
+                            local formattedKg = string.format("%.2fkg", fakeKgValue)
+                            obj.Text = text:gsub(angkaAsli .. "%s*[Kk][Gg]", formattedKg):gsub(angkaAsli, formattedKg)
+                        end
+                    end
+                    
+                    -- 2. UBAH UKURAN VISUAL BUAH (UBAH KEGEDEAN)
+                    local billboard = obj:FindFirstAncestorOfClass("BillboardGui")
+                    if billboard and billboard.Parent then
+                        local targetModel = billboard.Parent -- Ini adalah Model tempat buah berada
+                        
+                        -- Besarkan semua MeshPart/Part buah tersebut sesuai multiplier menu
+                        for _, part in pairs(targetModel:GetDescendants()) do
+                            if part:IsA("BasePart") and not part:IsA("Terrain") then
+                                if not OriginalSizes[part] then
+                                    OriginalSizes[part] = part.Size
+                                end
+                                part.Size = OriginalSizes[part] * CurrentMultiplier
+                            end
+                        end
+                    end
+                    
+                end
+            end
+        end
+    end
+end
+
+-- Looping background super cepat (0.1 detik) agar instan pas di-klik multiplier-nya
+task.spawn(function()
+    while true do
+        pcall(ApplyFruitSizeAndKgMod)
+        task.wait(0.1)
+    end
+end)
+
+
+-- ==================== UI SYSTEM: TOMBOL MINIMIZE '<' ====================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "NK_FruitChangerUI"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Ikon Bulat Ungu Kecil (Muncul saat menu di-minimize)
+local MenuIcon = Instance.new("TextButton")
+MenuIcon.Name = "MenuIcon"
+MenuIcon.Size = UDim2.new(0, 45, 0, 45)
+MenuIcon.Position = UDim2.new(0.85, 0, 0.35, 0)
+MenuIcon.BackgroundColor3 = Color3.fromRGB(140, 75, 255)
+MenuIcon.Text = ""
+MenuIcon.Visible = false
+MenuIcon.Active = true
+MenuIcon.Draggable = true
+MenuIcon.Parent = ScreenGui
+
+Instance.new("UICorner", MenuIcon).CornerRadius = UDim.new(1, 0)
+local IconStroke = Instance.new("UIStroke", MenuIcon)
+IconStroke.Color = Color3.fromRGB(255, 255, 255)
+IconStroke.Thickness = 2
+
+local IconDot = Instance.new("Frame", MenuIcon)
+IconDot.Size = UDim2.new(0, 12, 0, 12)
+IconDot.Position = UDim2.new(0.5, -6, 0.5, -6)
+IconDot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", IconDot).CornerRadius = UDim.new(1, 0)
+
+-- Frame Utama Mod Menu
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 310, 0, 230)
+MainFrame.Position = UDim2.new(0.65, 0, 0.35, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 14, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true 
+MainFrame.Parent = ScreenGui
+
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+local MainStroke = Instance.new "UIStroke"
+MainStroke.Color = Color3.fromRGB(75, 45, 130)
+MainStroke.Thickness = 2
+MainStroke.Parent = MainFrame
+
+-- Tombol Merah Minimize '<' di Samping Menu
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Text = "<"
+ToggleBtn.Size = UDim2.new(0, 25, 0, 35)
+ToggleBtn.Position = UDim2.new(1, 2, 0.4, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 14
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Parent = MainFrame
+
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 5)
+Instance.new("UIStroke", ToggleBtn).Color = Color3.fromRGB(120, 30, 30)
+
+-- Logika Minimize Ke Ikon Bulat
+ToggleBtn.MouseButton1Click:Connect(function()
+    MenuIcon.Position = UDim2.new(MainFrame.Position.X.Scale, MainFrame.Position.X.Offset, MainFrame.Position.Y.Scale, MainFrame.Position.Y.Offset)
+    MainFrame.Visible = false
+    MenuIcon.Visible = true
+end)
+
+-- Logika Maximize Kembali Ke Menu Utama
+MenuIcon.MouseButton1Click:Connect(function()
+    MainFrame.Position = UDim2.new(MenuIcon.Position.X.Scale, MenuIcon.Position.X.Offset, MenuIcon.Position.Y.Scale, MenuIcon.Position.Y.Offset)
+    MenuIcon.Visible = false
+    MainFrame.Visible = true
+end)
+
+-- Dekorasi Teks Dalam Menu
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Text = "Fruit KG Changer"
+Title.Size = UDim2.new(0, 200, 0, 16)
+Title.Position = UDim2.new(0, 15, 0, 15)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 13
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
+
+local MultiplierLabel = Instance.new("TextLabel", MainFrame)
+MultiplierLabel.Text = "Multiplier: x1"
+MultiplierLabel.Size = UDim2.new(1, -30, 0, 25)
+MultiplierLabel.Position = UDim2.new(0, 15, 0, 50)
+MultiplierLabel.Font = Enum.Font.GothamBold
+MultiplierLabel.TextSize = 18
+MultiplierLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiplierLabel.TextXAlignment = Enum.TextXAlignment.Right
+MultiplierLabel.BackgroundTransparency = 1
+
+-- Pembuat 4 Tombol Multiplier Utama (+1, +10, +100, Reset)
+local function CreateVideoBtn(name, text, pos)
+    local Btn = Instance.new("TextButton", MainFrame)
+    Btn.Name = name
+    Btn.Text = text
+    Btn.Size = UDim2.new(0, 135, 0, 42)
+    Btn.Position = pos
+    Btn.BackgroundColor3 = Color3.fromRGB(13, 9, 20)
+    Btn.Font = Enum.Font.GothamBold
+    Btn.TextSize = 13
+    Btn.TextColor3 = Color3.fromRGB(240, 240, 240)
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
+    return Btn
+end
+
+local Btn1 = CreateVideoBtn("Btn1", "+1", UDim2.new(0, 15, 0, 95))
+local Btn10 = CreateVideoBtn("Btn10", "+10", UDim2.new(0, 160, 0, 95))
+local Btn100 = CreateVideoBtn("Btn100", "+100", UDim2.new(0, 15, 0, 150))
+local BtnReset = CreateVideoBtn("BtnReset", "Reset", UDim2.new(0, 160, 0, 150))
+BtnReset.TextColor3 = Color3.fromRGB(240, 100, 100)
+
+local function RefreshUI()
+    MultiplierLabel.Text = "Multiplier: x" .. math.floor(CurrentMultiplier)
+end
+
+Btn1.MouseButton1Click:Connect(function() CurrentMultiplier = CurrentMultiplier + 1 RefreshUI() end)
+Btn10.MouseButton1Click:Connect(function() CurrentMultiplier = CurrentMultiplier + 10 RefreshUI() end)
+Btn100.MouseButton1Click:Connect(function() CurrentMultiplier = CurrentMultiplier + 100 RefreshUI() end)
+BtnReset.MouseButton1Click:Connect(function()
+    CurrentMultiplier = 1.0
+    RefreshUI()
+    -- Kembalikan ukuran buah ke semula saat di-Reset
+    for part, size in pairs(OriginalSizes) do
+        if part and part.Parent then
+            part.Size = size
+        end
+    end
+end)
+
+print("=== NK-MOD V4: FRUIT SIZE + KG PERFECTLY EQUIPPED ===")
