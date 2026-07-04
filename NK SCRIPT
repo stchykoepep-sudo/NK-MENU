@@ -1,0 +1,75 @@
+-- [[ NK SCRIPT v4 (Dynamic Weight Edition) - GROW A GARDEN 2 ]] --
+print("====================================")
+print("     NK SCRIPT v4 SUCCESS LOADED    ")
+print("====================================")
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- ==================== KONFIGURASI NK SCRIPT ====================
+local UKURAN_BARU = 2.5         -- Ukuran buah visual (2.5x lebih besar)
+local MULTIPLIER_KG = 1500      -- Angka Kg asli di game akan dikali sebesar ini (Biar detail & naik terus)
+local SEMBUNYIKAN_ICON = false   -- Set ke true jika ingin menyembunyikan ikon buah
+-- ===============================================================
+
+-- 1. FUNGSI MENGUBAH UKURAN BUAH (VISUAL)
+local function NK_UbahUkuranBuah()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and not obj:IsA("Terrain") and not obj.Parent:IsA("Accessory") then
+            if obj.Name:lower():find("fruit") or obj.Parent.Name:lower():find("garden") or obj.Name:lower():find("plant") then
+                if not obj:FindFirstChild("NK_Scaled") then
+                    local tag = Instance.new("BoolValue")
+                    tag.Name = "NK_Scaled"
+                    tag.Parent = obj
+                    
+                    obj.Size = obj.Size * UKURAN_BARU
+                end
+            end
+        end
+    end
+end
+
+-- 2. FUNGSI UPGRADE TEKS KG DINAMIS & DETAIL (VISUAL)
+local function NK_UbahUI()
+    local pGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if pGui then
+        for _, gui in pairs(pGui:GetDescendants()) do
+            -- Mengubah teks KG secara dinamis berdasarkan angka aslinya
+            if gui:IsA("TextLabel") then
+                local text = gui.Text
+                -- Mendeteksi jika teks mengandung angka dan tulisan kg
+                if text:lower():find("kg") or text:lower():find("weight") then
+                    -- Mengambil angka asli dari teks GUI game
+                    local angkaAsli = text:match("[%d%.]+")
+                    if angkaAsli then
+                        local num = tonumber(angkaAsli)
+                        if num and num > 0 and not gui:FindFirstChild("NK_Modified") then
+                            -- Hitung Kg palsu yang fantastis tapi detail desimalnya tetap terjaga
+                            local fakeKgValue = num * MULTIPLIER_KG
+                            local formattedKg = string.format("%.2fkg", fakeKgValue)
+                            
+                            -- Mengganti teks sesuai format asli gamenya (contoh: Pineapple 305.00kg)
+                            gui.Text = text:gsub(angkaAsli .. "%s*[Kk][Gg]", formattedKg):gsub(angkaAsli, formattedKg)
+                        end
+                    end
+                end
+            end
+            
+            -- Menyembunyikan Ikon jika diaktifkan
+            if SEMBUNYIKAN_ICON and (gui:IsA("ImageLabel") or gui:IsA("ImageButton")) then
+                if gui.Name:lower():find("icon") or gui.Image:lower():find("fruit") or gui.Name:lower():find("fruit") then
+                    gui.Visible = false
+                end
+            end
+        end
+    end
+end
+
+-- Loop otomatis real-time agar begitu buah diteken atau bertambah, angkanya langsung ke-ubah
+task.spawn(function()
+    while true do
+        pcall(NK_UbahUkuranBuah)
+        pcall(NK_UbahUI)
+        task.wait(0.3) -- Cek super cepat setiap 0.3 detik
+    end
+end)
