@@ -1,0 +1,113 @@
+-- [[ NK MENU v5 - GROW A GARDEN 2 ]] --
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- LOAD LIBRARY UI (Kavo Library - Ringan dan Simpel untuk HP/PC)
+local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Kavo.CreateLib("NK MENU", "BloodTheme") -- Tema Merah Hitam Keren
+
+-- Pengaturan Awal (Default)
+local UKURAN_BARU = 1.0
+local MULTIPLIER_KG = 1
+local SEMBUNYIKAN_ICON = false
+
+-- TAB UTAMA
+local MainTab = Window:NewTab("Main Features")
+local MainSection = MainTab:NewSection("Fruit & Kg Modifier")
+
+-- 1. INPUT UNTUK MENGUBAH UKURAN BUAH (SCALE)
+MainSection:NewTextBox("Fruit Scale (e.g. 2.5)", "Mengubah ukuran buah (Default 1.0)", function(text)
+    local num = tonumber(text)
+    if num then
+        UKURAN_BARU = num
+        print("NK MENU: Ukuran diatur ke " .. UKURAN_BARU)
+    end
+end)
+
+-- 2. INPUT UNTUK PENGALI KG (BIAR DETAIL DAN DINAMIS)
+MainSection:NewTextBox("Kg Multiplier (e.g. 1500)", "Mengalikan berat Kg asli buah", function(text)
+    local num = tonumber(text)
+    if num then
+        MULTIPLIER_KG = num
+        print("NK MENU: Pengali Kg diatur ke " .. MULTIPLIER_KG)
+    end
+end)
+
+-- 3. TOMBOL UNTUK SEMBUNYIKAN / MUNCULKAN IKON
+MainSection:NewToggle("Hide Fruit Icons", "Menyembunyikan ikon buah di layar", function(state)
+    SEMBUNYIKAN_ICON = state
+    if not state then
+        -- Jika dimatikan, kembalikan ikon menjadi terlihat
+        local pGui = LocalPlayer:FindFirstChild("PlayerGui")
+        if pGui then
+            for _, gui in pairs(pGui:GetDescendants()) do
+                if gui:IsA("ImageLabel") or gui:IsA("ImageButton") then
+                    if gui.Name:lower():find("icon") or gui.Image:lower():find("fruit") or gui.Name:lower():find("fruit") then
+                        gui.Visible = true
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- TAB INFO
+local InfoTab = Window:NewTab("Credits")
+local InfoSection = InfoTab:NewSection("NK SCRIPT v5")
+InfoSection:NewLabel("Status: Active (Visual Only)")
+InfoSection:NewLabel("Created for Grow a Garden 2")
+
+-- ==================== CORE FUNCTIONS (LOOPING SYSTEM) ====================
+local function NK_CoreLoop()
+    -- Efek Ukuran Buah
+    if UKURAN_BARU ~= 1.0 then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and not obj:IsA("Terrain") and not obj.Parent:IsA("Accessory") then
+                if obj.Name:lower():find("fruit") or obj.Parent.Name:lower():find("garden") or obj.Name:lower():find("plant") then
+                    if not obj:FindFirstChild("NK_Scaled") then
+                        local tag = Instance.new("BoolValue")
+                        tag.Name = "NK_Scaled"
+                        tag.Parent = obj
+                        obj.Size = obj.Size * UKURAN_BARU
+                    end
+                end
+            end
+        end
+    end
+
+    -- Efek UI (Kg & Icon)
+    local pGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if pGui then
+        for _, gui in pairs(pGui:GetDescendants()) do
+            -- Edit Teks KG
+            if gui:IsA("TextLabel") and MULTIPLIER_KG ~= 1 then
+                local text = gui.Text
+                if text:lower():find("kg") or text:lower():find("weight") then
+                    local angkaAsli = text:match("[%d%.]+")
+                    if angkaAsli then
+                        local num = tonumber(angkaAsli)
+                        if num and num > 0 then
+                            local fakeKgValue = num * MULTIPLIER_KG
+                            local formattedKg = string.format("%.2fkg", fakeKgValue)
+                            gui.Text = text:gsub(angkaAsli .. "%s*[Kk][Gg]", formattedKg):gsub(angkaAsli, formattedKg)
+                        end
+                    end
+                end
+            end
+            
+            -- Sembunyikan Ikon
+            if SEMBUNYIKAN_ICON and (gui:IsA("ImageLabel") or gui:IsA("ImageButton")) then
+                if gui.Name:lower():find("icon") or gui.Image:lower():find("fruit") or gui.Name:lower():find("fruit") then
+                    gui.Visible = false
+                end
+            end
+        end
+    end
+end
+
+task.spawn(function()
+    while true do
+        pcall(NK_CoreLoop)
+        task.wait(0.3)
+    end
+end)
