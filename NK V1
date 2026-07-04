@@ -1,0 +1,229 @@
+-- [[ NK-MOD - FRUIT KG CHANGER + HIDE ICON (ULTIMATE EDITION) ]] --
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+
+-- Hapus UI lama agar tidak menumpuk
+if CoreGui:FindFirstChild("NK_FruitChangerUI") then
+    CoreGui["NK_FruitChangerUI"]:Destroy()
+end
+
+-- ==================== STATE MANAGEMENT ====================
+local CurrentMultiplier = 1.0
+local OriginalSizes = {}
+local SEMBUNYIKAN_ICON = true -- Ganti ke false jika ingin memunculkan ikonnya lagi
+
+-- Fungsi Utama Modifikasi Visual Buah, Teks Kg, dan Sembunyikan Ikon
+local function ApplyUltimateModifications()
+    -- 1. UBAH VISUAL UKURAN MODEL BUAH (DI PLOT & KARAKTER)
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and not obj:IsA("Terrain") and not obj.Parent:IsA("Accessory") then
+            local name = obj.Name:lower()
+            local parentName = obj.Parent and obj.Parent.Name:lower() or ""
+            
+            if name:find("fruit") or name:find("carrot") or name:find("pineapple") or name:find("buah") or parentName:find("plot") or obj.Parent:IsA("Tool") then
+                
+                if not OriginalSizes[obj] then
+                    OriginalSizes[obj] = obj.Size
+                end
+                
+                -- Kalikan ukurannya secara visual sesuai multiplier tombol
+                obj.Size = OriginalSizes[obj] * CurrentMultiplier
+            end
+        end
+    end
+
+    -- 2. UBAH TEKS INDIKATOR KG (MELAYANG DI ATAS BUAH & SCREEN)
+    for _, gui in pairs(game:GetDescendants()) do
+        if gui:IsA("TextLabel") then
+            local text = gui.Text
+            if text:lower():find("kg") or text:lower():find("weight") then
+                local angkaAsli = text:match("[%d%.]+")
+                if angkaAsli then
+                    local num = tonumber(angkaAsli)
+                    if num and num > 0 then
+                        local fakeKgValue = num * CurrentMultiplier
+                        local formattedKg = string.format("%.1fkg", fakeKgValue)
+                        
+                        gui.Text = text:gsub(angkaAsli .. "%s*[Kk][Gg]", formattedKg):gsub(angkaAsli, formattedKg)
+                    end
+                end
+            end
+        end
+    end
+
+    -- 3. FITUR SEMBUNYIKAN IKON BUAH / UI TERTENTU (VISUAL HIDE)
+    if SEMBUNYIKAN_ICON then
+        local pGui = LocalPlayer:FindFirstChild("PlayerGui")
+        if pGui then
+            for _, gui in pairs(pGui:GetDescendants()) do
+                if gui:IsA("ImageLabel") or gui:IsA("ImageButton") then
+                    -- Mencari ikon yang mendeteksi gambar buah atau tombol ikon di layar
+                    if gui.Name:lower():find("icon") or gui.Image:lower():find("fruit") or gui.Name:lower():find("fruit") then
+                        gui.Visible = false
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Looping background super cepat (0.1 detik) biar responsif dan real-time
+task.spawn(function()
+    while true do
+        pcall(ApplyUltimateModifications)
+        task.wait(0.1)
+    end
+end)
+
+
+-- ==================== UI REPLIKA PERSIS VIDEO ====================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "NK_FruitChangerUI"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Frame Utama (Ungu Gelap)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 310, 0, 230)
+MainFrame.Position = UDim2.new(0.65, 0, 0.35, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 14, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true -- Bisa digeser di HP kamu
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 10)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(75, 45, 130)
+MainStroke.Thickness = 2
+MainStroke.Parent = MainFrame
+
+-- Ikon Ungu Kotak Kecil di Kiri Atas
+local HeaderIcon = Instance.new("Frame")
+HeaderIcon.Size = UDim2.new(0, 24, 0, 24)
+HeaderIcon.Position = UDim2.new(0, 15, 0, 15)
+HeaderIcon.BackgroundColor3 = Color3.fromRGB(140, 75, 255)
+HeaderIcon.Parent = MainFrame
+
+local IconCorner = Instance.new("UICorner")
+IconCorner.CornerRadius = UDim.new(0, 6)
+IconCorner.Parent = HeaderIcon
+
+local InsideDot = Instance.new("Frame")
+InsideDot.Size = UDim2.new(0, 6, 0, 6)
+InsideDot.Position = UDim2.new(0.5, -3, 0.5, -3)
+InsideDot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+InsideDot.Parent = HeaderIcon
+Instance.new("UICorner", InsideDot).CornerRadius = UDim.new(1, 0)
+
+-- Judul Utama
+local Title = Instance.new("TextLabel")
+Title.Text = "Fruit KG Changer"
+Title.Size = UDim2.new(0, 200, 0, 16)
+Title.Position = UDim2.new(0, 48, 0, 12)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 13
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
+Title.Parent = MainFrame
+
+-- Subjudul
+local Subtitle = Instance.new("TextLabel")
+Subtitle.Text = "Weight & Size Modifier - v1.0"
+Subtitle.Size = UDim2.new(0, 200, 0, 12)
+Subtitle.Position = UDim2.new(0, 48, 0, 28)
+Subtitle.Font = Enum.Font.Gotham
+Subtitle.TextSize = 9
+Subtitle.TextColor3 = Color3.fromRGB(130, 120, 150)
+Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+Subtitle.BackgroundTransparency = 1
+Subtitle.Parent = MainFrame
+
+-- Indikator Multiplier (Multiplier: x1)
+local MultiplierLabel = Instance.new("TextLabel")
+MultiplierLabel.Text = "Multiplier: x1"
+MultiplierLabel.Size = UDim2.new(1, -30, 0, 25)
+MultiplierLabel.Position = UDim2.new(0, 15, 0, 60)
+MultiplierLabel.Font = Enum.Font.GothamBold
+MultiplierLabel.TextSize = 18
+MultiplierLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiplierLabel.TextXAlignment = Enum.TextXAlignment.Right
+MultiplierLabel.BackgroundTransparency = 1
+MultiplierLabel.Parent = MainFrame
+
+-- Fungsi Pembuat Tombol Kotak
+local function CreateVideoBtn(name, text, pos)
+    local Btn = Instance.new("TextButton")
+    Btn.Name = name
+    Btn.Text = text
+    Btn.Size = UDim2.new(0, 135, 0, 42)
+    Btn.Position = pos
+    Btn.BackgroundColor3 = Color3.fromRGB(13, 9, 20)
+    Btn.Font = Enum.Font.GothamBold
+    Btn.TextSize = 13
+    Btn.TextColor3 = Color3.fromRGB(240, 240, 240)
+    Btn.Parent = MainFrame
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Btn
+    
+    local LeftIndicator = Instance.new("Frame")
+    LeftIndicator.Size = UDim2.new(0, 3, 1, -12)
+    LeftIndicator.Position = UDim2.new(0, 4, 0, 6)
+    LeftIndicator.BackgroundColor3 = Color3.fromRGB(110, 60, 220)
+    LeftIndicator.BorderSizePixel = 0
+    LeftIndicator.Parent = Btn
+    
+    return Btn
+end
+
+-- Spawn 4 Tombol Sesuai Layout Video
+local Btn1 = CreateVideoBtn("Btn1", "+1", UDim2.new(0, 15, 0, 105))
+local Btn10 = CreateVideoBtn("Btn10", "+10", UDim2.new(0, 160, 0, 105))
+local Btn100 = CreateVideoBtn("Btn100", "+100", UDim2.new(0, 15, 0, 160))
+local BtnReset = CreateVideoBtn("BtnReset", "Reset", UDim2.new(0, 160, 0, 160))
+
+BtnReset.TextColor3 = Color3.fromRGB(240, 100, 100)
+if BtnReset:FindFirstChild("LeftIndicator") then
+    BtnReset.LeftIndicator.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+end
+
+-- ==================== TOMBOL ACTION SYSTEM ====================
+local function RefreshUI()
+    MultiplierLabel.Text = "Multiplier: x" .. math.floor(CurrentMultiplier)
+end
+
+Btn1.MouseButton1Click:Connect(function()
+    CurrentMultiplier = CurrentMultiplier + 1
+    RefreshUI()
+end)
+
+Btn10.MouseButton1Click:Connect(function()
+    CurrentMultiplier = CurrentMultiplier + 10
+    RefreshUI()
+end)
+
+Btn100.MouseButton1Click:Connect(function()
+    CurrentMultiplier = CurrentMultiplier + 100
+    RefreshUI()
+end)
+
+BtnReset.MouseButton1Click:Connect(function()
+    CurrentMultiplier = 1.0
+    RefreshUI()
+    -- Kembalikan ukuran visual semua objek ke semula
+    for obj, size in pairs(OriginalSizes) do
+        if obj and obj.Parent then
+            obj.Size = size
+        end
+    end
+end)
+
+print("=== NK-MOD ULTIMATE EDITION SUKSES DIAKTIFKAN ===")
