@@ -1,0 +1,27 @@
+-- SCRIPT VISUAL SIZE CHANGER GAG 2 (PASTE DI GITHUB GIST)
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local SKALA_UKURAN = 5.0 -- Atur angka bebas untuk ukuran raksasa visual
+
+local function dapatkanPlotSaya()
+    for _, plot in pairs(Workspace:WaitForChild("Plots"):GetChildren()) do
+        if plot:FindFirstChild("Owner") and plot.Owner.Value == LocalPlayer.Name then
+            return plot
+        end
+    end
+    return nil
+end
+
+local myPlot = dapatkanPlotSaya()
+if myPlot and myPlot:FindFirstChild("Plants") then
+    for _, plant in pairs(myPlot.Plants:GetChildren()) do
+        local model = plant:FindFirstChild("Model") or plant
+        if model:IsA("Model") then
+            model:ScaleTo(SKALA_UKURAN)
+        end
+    end
+    print("Visual sukses diubah!")
+else
+    warn("Plot tidak ditemukan.")
+end
